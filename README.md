@@ -99,7 +99,9 @@ git push heroku main
 
 Notas:
 - O buildpack Node roda o script `build` automaticamente e gera `dist/`.
-- `engines.node` no `package.json` fixa a versão do Node (`20.x`).
+- `engines.node` no `package.json` fixa a versão do Node (`22.x`). É
+  necessário Node 22+ porque o `@supabase/supabase-js` exige o `WebSocket`
+  nativo (global só a partir do Node 22) ao criar o client.
 - As variáveis `PUBLIC_*` são embutidas no client durante o build, então é
   importante defini-las **antes** do build (o `config:set` acima já garante).
 

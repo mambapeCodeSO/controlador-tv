@@ -1,0 +1,70 @@
+---
+interface Props {
+  title?: string;
+  description?: string;
+  /** Player fullscreen não deve ter padding/scroll do shell. */
+  bare?: boolean;
+}
+
+const {
+  title = 'Controle-TV',
+  description = 'Console para controlar remotamente o que cada TV da empresa exibe.',
+  bare = false,
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="pt-BR" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230D0B14'/%3E%3Ccircle cx='50' cy='50' r='16' fill='%237C3AED'/%3E%3C/svg%3E" />
+    <title>{title}</title>
+
+    <!-- Fontes: Space Grotesk (display), Inter (corpo), JetBrains Mono (endereços) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style is:global>
+      :root {
+        color-scheme: dark;
+      }
+      html {
+        background-color: #0d0b14;
+      }
+      body {
+        min-height: 100%;
+        overflow-x: hidden;
+      }
+      /* Foco visível em TODOS os elementos interativos: anel violeta 2px. */
+      *:focus-visible {
+        outline: 2px solid #7c3aed;
+        outline-offset: 2px;
+        border-radius: 4px;
+      }
+      ::selection {
+        background: rgba(124, 58, 237, 0.4);
+        color: #e8e6f0;
+      }
+      /* Respeita prefers-reduced-motion globalmente. */
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.001ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body class={`bg-bg text-text font-body antialiased ${bare ? '' : 'min-h-full'}`}>
+    <slot />
+  </body>
+</html>

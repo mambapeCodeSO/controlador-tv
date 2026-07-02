@@ -1,0 +1,31 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import AdminPanel from '../components/AdminPanel.tsx';
+import { getSupabaseAdmin, type Tv, TV_COLUMNS } from '../lib/supabase';
+
+export const prerender = false;
+
+// A guarda de sessão é feita pelo middleware; ainda assim, carregamos a
+// lista via service role aqui para o render inicial (SSR).
+let initialTvs: Tv[] = [];
+let loadError = false;
+
+try {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from('tvs')
+    .select(TV_COLUMNS)
+    .order('name', { ascending: true });
+  if (error) throw error;
+  initialTvs = (data as Tv[]) ?? [];
+} catch {
+  // Sem credenciais válidas (ex.: build/preview) — renderiza vazio.
+  loadError = true;
+}
+---
+
+<BaseLayout title="Painel — Controle-TV">
+  <div class="min-h-screen">
+    <AdminPanel client:load initialTvs={initialTvs} loadError={loadError} />
+  </div>
+</BaseLayout>

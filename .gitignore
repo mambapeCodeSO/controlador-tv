@@ -1,0 +1,19 @@
+# dependências
+node_modules/
+
+# build
+dist/
+.astro/
+
+# ambiente
+.env
+.env.*
+!.env.example
+
+# deploy
+.vercel/
+
+# sistema
+.DS_Store
+Thumbs.db
+*.log

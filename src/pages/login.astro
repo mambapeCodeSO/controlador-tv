@@ -1,0 +1,61 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { verifySessionToken, SESSION_COOKIE } from '../lib/auth';
+
+export const prerender = false;
+
+// Se já estiver autenticado, vai direto para o painel.
+if (verifySessionToken(Astro.cookies.get(SESSION_COOKIE)?.value)) {
+  return Astro.redirect('/admin', 302);
+}
+
+// Mensagem de erro vinda de ?error=1 (redirect após senha incorreta).
+const hasError = Astro.url.searchParams.get('error') === '1';
+---
+
+<BaseLayout title="Entrar — Controle-TV">
+  <main class="mx-auto flex min-h-screen max-w-md flex-col justify-center px-6 py-16">
+    <div class="mb-8 flex items-center gap-2">
+      <span class="inline-flex h-3 w-3 rounded-full bg-primary"></span>
+      <span class="font-display text-lg font-semibold tracking-tight">Controle-TV</span>
+    </div>
+
+    <div class="rounded-2xl border border-border bg-surface p-6 sm:p-8">
+      <h1 class="font-display text-2xl font-semibold">Entrar</h1>
+      <p class="mt-1 text-sm text-muted">Acesse o painel de controle das TVs.</p>
+
+      <form method="POST" action="/api/login" class="mt-6 space-y-4">
+        <div>
+          <label for="password" class="mb-1.5 block text-sm text-muted">Senha</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+            autofocus
+            class="w-full rounded-lg border border-border bg-surface2 px-3 py-2.5 text-text placeholder:text-muted/60 focus:border-primary focus:outline-none"
+            placeholder="••••••••"
+          />
+        </div>
+
+        {hasError && (
+          <p class="rounded-lg border border-offline/30 bg-offline/10 px-3 py-2 text-sm text-offline">
+            Senha incorreta.
+          </p>
+        )}
+
+        <button
+          type="submit"
+          class="w-full rounded-lg bg-primary px-4 py-2.5 font-medium text-white transition-colors hover:bg-primary-hover"
+        >
+          Entrar
+        </button>
+      </form>
+    </div>
+
+    <a href="/" class="mt-6 text-center text-sm text-muted transition-colors hover:text-text">
+      Voltar ao início
+    </a>
+  </main>
+</BaseLayout>

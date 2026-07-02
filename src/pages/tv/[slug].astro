@@ -1,0 +1,48 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import TvPlayer from '../../components/TvPlayer.tsx';
+import { supabaseAnon, type Tv, TV_COLUMNS } from '../../lib/supabase';
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+
+let tv: Tv | null = null;
+try {
+  if (slug) {
+    const { data } = await supabaseAnon
+      .from('tvs')
+      .select(TV_COLUMNS)
+      .eq('slug', slug)
+      .maybeSingle();
+    tv = (data as Tv) ?? null;
+  }
+} catch {
+  tv = null;
+}
+---
+
+<BaseLayout title={tv ? `${tv.name} — TV` : 'TV não encontrada'} bare={true}>
+  {
+    tv ? (
+      <TvPlayer
+        client:load
+        slug={tv.slug}
+        initialUrl={tv.current_url}
+        initialName={tv.name}
+        initialReloadNonce={tv.reload_nonce}
+      />
+    ) : (
+      <main class="flex min-h-screen flex-col items-center justify-center px-6 text-center">
+        <span class="inline-flex h-3 w-3 rounded-full bg-offline/70" />
+        <h1 class="mt-6 font-display text-2xl font-semibold text-text">
+          TV não encontrada
+        </h1>
+        <p class="mt-2 text-muted">Nenhuma TV corresponde a este endereço.</p>
+        <p class="mt-6 rounded-lg border border-border bg-surface px-3 py-1.5 font-mono text-sm text-muted">
+          /tv/{slug}
+        </p>
+      </main>
+    )
+  }
+</BaseLayout>

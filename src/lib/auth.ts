@@ -15,10 +15,19 @@ import crypto from 'node:crypto';
 export const SESSION_COOKIE = 'ct_session';
 const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60; // 8 horas
 
+// Lê um segredo do ambiente. Prioriza process.env (runtime — reflete as
+// config vars do Heroku/host Node) e cai para import.meta.env (build-time,
+// útil em dev). Módulo server-only: nunca é importado pelo cliente, então
+// process.env é seguro aqui.
+function serverEnv(key: string): string | undefined {
+  const buildTime = import.meta.env as Record<string, string | undefined>;
+  return process.env[key] ?? buildTime[key];
+}
+
 function getSecret(): string {
-  const secret = import.meta.env.SESSION_SECRET;
+  const secret = serverEnv('SESSION_SECRET');
   if (!secret) {
-    throw new Error('Configuração ausente: defina SESSION_SECRET no .env.');
+    throw new Error('Configuração ausente: defina SESSION_SECRET no ambiente.');
   }
   return secret;
 }
@@ -46,9 +55,9 @@ export function safeEqual(a: string, b: string): boolean {
 
 // Verifica a senha do admin em tempo constante.
 export function verifyPassword(input: string): boolean {
-  const expected = import.meta.env.ADMIN_PASSWORD;
+  const expected = serverEnv('ADMIN_PASSWORD');
   if (!expected) {
-    throw new Error('Configuração ausente: defina ADMIN_PASSWORD no .env.');
+    throw new Error('Configuração ausente: defina ADMIN_PASSWORD no ambiente.');
   }
   if (typeof input !== 'string' || input.length === 0) return false;
   return safeEqual(input, expected);

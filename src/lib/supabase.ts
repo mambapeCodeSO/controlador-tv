@@ -43,12 +43,16 @@ export const supabaseAnon: SupabaseClient = createClient(
 // das envs não derrube o build SSR no momento do import.
 // =====================================================================
 export function getSupabaseAdmin(): SupabaseClient {
-  const url = import.meta.env.PUBLIC_SUPABASE_URL;
-  const serviceKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
+  // Runtime (process.env) tem prioridade sobre build-time (import.meta.env)
+  // para funcionar com config vars do Heroku/host Node. Função server-only.
+  const url =
+    process.env.PUBLIC_SUPABASE_URL ?? import.meta.env.PUBLIC_SUPABASE_URL;
+  const serviceKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? import.meta.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !serviceKey) {
     throw new Error(
-      'Configuração ausente: defina PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no .env.',
+      'Configuração ausente: defina PUBLIC_SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY no ambiente.',
     );
   }
 

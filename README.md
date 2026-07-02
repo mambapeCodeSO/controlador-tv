@@ -14,7 +14,7 @@ polling a cada 5s e troca o `src` do iframe quando `current_url` (ou
 - **Tailwind CSS** — design system "control room"
 - **React** — apenas ilhas interativas (`AdminPanel`, `TvPlayer`, `TvCard`)
 - **Supabase** (`@supabase/supabase-js`) — banco de dados
-- **Vercel** — deploy (adapter `@astrojs/vercel`)
+- **Heroku** — deploy (adapter `@astrojs/node` standalone + `Procfile`)
 
 ---
 
@@ -75,19 +75,33 @@ passa a exibir a URL definida no admin e se atualiza sozinha:
   o batimento de vida da TV nunca cause um reload indesejado.
 - **Tela padrão** — restaura `current_url = default_url` da TV.
 
-## 6) Deploy na Vercel
+## 6) Deploy no Heroku
 
-1. Faça push do repositório para o GitHub e **importe** na Vercel.
-2. Em **Settings → Environment Variables**, defina as 5 variáveis do
-   `.env` (as `PUBLIC_*` também). O adapter `@astrojs/vercel` já está
-   configurado em `astro.config.mjs` (`output: 'server'`), então a Vercel
-   faz o deploy como funções serverless automaticamente.
-3. Deploy. Cadastre/abra as TVs pelas rotas acima.
+O app é SSR e usa o adapter **`@astrojs/node`** (modo standalone). O
+`Procfile` sobe o servidor com `node ./dist/server/entry.mjs`, escutando na
+porta que o Heroku injeta (`PORT`) e em `HOST=0.0.0.0`.
 
-> **Railway (alternativa):** também funciona. Como o app é SSR Node, troque
-> o adapter para `@astrojs/node` (`output: 'server'`) e rode `node
-> ./dist/server/entry.mjs`, ou use o adapter da plataforma equivalente.
-> Defina as mesmas variáveis de ambiente no painel do Railway.
+```bash
+# 1) criar o app (uma vez)
+heroku create controlador-tv
+
+# 2) definir as 5 variáveis de ambiente (NUNCA commitar o .env)
+heroku config:set \
+  PUBLIC_SUPABASE_URL="https://xxxx.supabase.co" \
+  PUBLIC_SUPABASE_ANON_KEY="sb_publishable_..." \
+  SUPABASE_SERVICE_ROLE_KEY="sb_secret_..." \
+  ADMIN_PASSWORD="sua-senha-forte" \
+  SESSION_SECRET="valor-aleatorio-longo"
+
+# 3) deploy (Heroku roda `npm install` + `npm run build` e inicia o Procfile)
+git push heroku main
+```
+
+Notas:
+- O buildpack Node roda o script `build` automaticamente e gera `dist/`.
+- `engines.node` no `package.json` fixa a versão do Node (`20.x`).
+- As variáveis `PUBLIC_*` são embutidas no client durante o build, então é
+  importante defini-las **antes** do build (o `config:set` acima já garante).
 
 ---
 

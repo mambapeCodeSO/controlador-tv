@@ -10,7 +10,11 @@ interface Props {
 
 const POLL_MS = 5000;
 const HEARTBEAT_MS = 15000;
-const IFRAME_BLOCK_TIMEOUT_MS = 6000;
+// Muitos dashboards mantem conexoes vivas (websocket, long-polling, streaming)
+// e nesses casos o evento onLoad do iframe pode NUNCA disparar, mesmo com a
+// pagina exibida e funcionando. Depois desse tempo escondemos o overlay de
+// "Carregando" mesmo sem onLoad, para nao deixar um spinner preso na tela.
+const LOADING_FALLBACK_MS = 8000;
 
 /**
  * Player fullscreen de uma TV.
@@ -22,51 +26,54 @@ const IFRAME_BLOCK_TIMEOUT_MS = 6000;
  *   a cada ~15s e nao deve recarregar a TV.
  * - Envia heartbeat (/api/heartbeat) a cada ~15s para atualizar
  *   last_seen_at.
+ *
+ * NOTA: nao ha deteccao de bloqueio (X-Frame-Options/CSP). Para iframes
+ * cross-origin e impossivel saber pelo cliente se o site recusou a
+ * incorporacao — qualquer heuristica por timeout gera falso positivo em
+ * paginas lentas ou com conexao viva. Se um dia for preciso detectar
+ * bloqueio de verdade, o caminho e um proxy no servidor que inspeciona os
+ * cabecalhos da resposta.
  */
 export default function TvPlayer({ slug, initialUrl, initialName, initialReloadNonce }: Props) {
   const [url, setUrl] = useState(initialUrl ?? '');
   const [name] = useState(initialName ?? '');
-  const [showBlockBanner, setShowBlockBanner] = useState(false);
   const [loadingFrame, setLoadingFrame] = useState<boolean>(Boolean(initialUrl));
 
   const reloadNonceRef = useRef<number>(initialReloadNonce ?? 0);
   // Chave de reload: muda sempre que precisamos remontar/recarregar o iframe.
   const [frameKey, setFrameKey] = useState(0);
-  const blockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const loaderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const clearBlockTimer = useCallback(() => {
-    if (blockTimerRef.current) {
-      clearTimeout(blockTimerRef.current);
-      blockTimerRef.current = null;
+  const clearLoaderTimer = useCallback(() => {
+    if (loaderTimerRef.current) {
+      clearTimeout(loaderTimerRef.current);
+      loaderTimerRef.current = null;
     }
   }, []);
 
-  // Sempre que a URL muda (e existe), inicia um timer de deteccao de bloqueio.
-  // DETECCAO E BEST-EFFORT: para iframes cross-origin e impossivel inspecionar
-  // de forma confiavel se o conteudo carregou (o navegador bloqueia o acesso).
-  // Aqui apenas assumimos: se o onLoad nao disparar em ~6s, provavelmente o
-  // site recusou a incorporacao (X-Frame-Options/CSP) e mostramos um aviso.
-  const armBlockDetection = useCallback(() => {
-    clearBlockTimer();
+  // Sempre que a URL muda (e existe), mostra o overlay de "Carregando" e arma
+  // um fallback: se o onLoad nao disparar dentro do tempo limite (dashboards
+  // com conexao viva podem nunca dispara-lo), escondemos o overlay mesmo
+  // assim, pois a pagina normalmente ja esta visivel.
+  const armLoader = useCallback(() => {
+    clearLoaderTimer();
     if (!url) return;
-    setShowBlockBanner(false);
     setLoadingFrame(true);
-    blockTimerRef.current = setTimeout(() => {
-      setShowBlockBanner(true);
-    }, IFRAME_BLOCK_TIMEOUT_MS);
-  }, [url, clearBlockTimer]);
+    loaderTimerRef.current = setTimeout(() => {
+      setLoadingFrame(false);
+    }, LOADING_FALLBACK_MS);
+  }, [url, clearLoaderTimer]);
 
   useEffect(() => {
-    armBlockDetection();
-    return clearBlockTimer;
+    armLoader();
+    return clearLoaderTimer;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url, frameKey]);
 
   const handleFrameLoad = useCallback(() => {
-    clearBlockTimer();
-    setShowBlockBanner(false);
+    clearLoaderTimer();
     setLoadingFrame(false);
-  }, [clearBlockTimer]);
+  }, [clearLoaderTimer]);
 
   // Polling: detecta mudancas de current_url / updated_at.
   useEffect(() => {
@@ -149,15 +156,6 @@ export default function TvPlayer({ slug, initialUrl, initialName, initialReloadN
           <div className="flex items-center gap-3 rounded-full border border-border bg-surface/90 px-4 py-2 text-sm text-muted backdrop-blur">
             <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
             Carregando...
-          </div>
-        </div>
-      )}
-
-      {showBlockBanner && (
-        <div className="absolute inset-x-0 top-0 z-20 flex justify-center p-3">
-          <div className="max-w-2xl rounded-lg border border-offline/40 bg-surface/95 px-4 py-2 text-center text-sm text-text shadow-lg backdrop-blur">
-            Este site pode estar bloqueando a exibicao incorporada
-            (X-Frame-Options/CSP).
           </div>
         </div>
       )}
